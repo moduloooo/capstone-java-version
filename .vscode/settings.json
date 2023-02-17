@@ -1,0 +1,15 @@
+{
+    "java.project.referencedLibraries": [
+        "lib/**/*.jar",
+        "c:\\Users\\mridu\\Desktop\\CAPSTONE\\JOGL2.jar",
+        "c:\\Users\\mridu\\Desktop\\CAPSTONE\\jar_files\\joml-1.10.4.jar",
+        "c:\\Users\\mridu\\OneDrive\\Desktop\\CAPSTONE\\JOGL2.jar",
+        "c:\\Users\\mridu\\OneDrive\\Desktop\\CAPSTONE\\jar_files\\joml-1.10.4.jar",
+        "c:\\Users\\mridu\\OneDrive\\Desktop\\CAPSTONE\\j to the a to the v to the a\\all required jar files\\gluegen-rt.jar",
+        "c:\\Users\\mridu\\OneDrive\\Desktop\\CAPSTONE\\j to the a to the v to the a\\all required jar files\\gluegen-rt-natives-windows-amd64.jar",
+        "c:\\Users\\mridu\\OneDrive\\Desktop\\CAPSTONE\\j to the a to the v to the a\\all required jar files\\JOGL2.jar",
+        "c:\\Users\\mridu\\OneDrive\\Desktop\\CAPSTONE\\j to the a to the v to the a\\all required jar files\\jogl-all.jar",
+        "c:\\Users\\mridu\\OneDrive\\Desktop\\CAPSTONE\\j to the a to the v to the a\\all required jar files\\jogl-all-natives-windows-amd64.jar",
+        "c:\\Users\\mridu\\OneDrive\\Desktop\\CAPSTONE\\j to the a to the v to the a\\all required jar files\\joml-1.10.4.jar"
+    ]
+}
