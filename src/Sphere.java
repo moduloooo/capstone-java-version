@@ -1,6 +1,7 @@
 import static java.lang.Math.*;
 import org.joml.*;
 
+//procedurally generated sphere -- so that I don't have to calculate every single vertex position by hand
 public class Sphere {
     private int numVertices, numIndices, precision;
     private int[] indices;

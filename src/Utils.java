@@ -22,7 +22,7 @@ import com.jogamp.opengl.util.texture.awt.AWTTextureIO;
 import jogamp.opengl.GLContextImpl;
 import java.awt.image.BufferedImage;
 
-
+//utility functions that I don't want to put in main
 public class Utils {
 
     public Utils () {

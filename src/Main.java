@@ -26,12 +26,11 @@ public class Main extends JFrame implements GLEventListener {
     private int obj_renderer;
 
     int vao[] = new int[2];
-    int vboS[] = new int[13]; //check the number of elements
+    int vboS[] = new int[12]; 
     int vboO[] = new int[4];
 
     private float cameraX, cameraY, cameraZ;
     private float objX, objY, objZ;
-    //private float sobjX, sobjY, sobjZ;
     private float sobjX[] = new float[25];
     private float sobjY[] = new float[25];
     private float sobjZ[] = new float[25];
@@ -42,8 +41,6 @@ public class Main extends JFrame implements GLEventListener {
     private Matrix4f mMat = new Matrix4f();
     private Matrix4f mvMat = new Matrix4f();
     private Matrix4f invTrMat = new Matrix4f();
-
-    //private GLAutoDrawable help;
 
     private int vLoc, mvLoc, projLoc, nLoc;
     private int globalAmbLoc, ambLoc, diffLoc, specLoc, posLoc, mAmbLoc, mDiffLoc, mSpecLoc, mShiLoc;
@@ -64,20 +61,12 @@ public class Main extends JFrame implements GLEventListener {
     private Vector3f initialLightLoc = new Vector3f(5.0f, 2.0f, 2.0f);
 
     private int skyboxTexture;
-    //private Texture skyTexture2; 
 
     private int numSphereVerts;
 
     private double elapsedTime;
     private double startTime;
     private double tf;
-
-    private int top;
-    private int bot;
-    private int front;
-    private int back;
-    private int right;
-    private int left;
 
     private int[] textures = new int[6];
     private String[] texNames = {
@@ -91,21 +80,20 @@ public class Main extends JFrame implements GLEventListener {
 
     private float aspect;
 
-    private int loc[] = new int[25];
-
     public Main() {
-        setTitle("cubing");
+        //creating the window
+        setTitle("capstone java version");
         setSize(1000, 1000);
         myCanvas = new GLCanvas();
         myCanvas.addGLEventListener(this);
         this.add(myCanvas);
         this.setVisible(true);
-        FPSAnimator animator = new FPSAnimator(myCanvas, 60);
-        animator.start();
     }
 
     public void init(GLAutoDrawable drawable) {
         GL4 gl = (GL4) GLContext.getCurrentGL();
+        
+        //drawing the cubemap first
         cube_renderer = Utils.createShaderProgram("shaders/vert.glsl", "shaders/frag.glsl");
         setupVertices();
         cameraX = 0.0f; cameraY = 0.0f; cameraZ = 9.0f;
@@ -115,6 +103,7 @@ public class Main extends JFrame implements GLEventListener {
             textures[i] = Utils.loadTexture(texNames[i]);
         }
 
+        //now drawing all the objects
         obj_renderer = Utils.createShaderProgram("shaders/objvert.glsl", "shaders/objfrag.glsl");
         sphereVertices();
 
@@ -132,34 +121,28 @@ public class Main extends JFrame implements GLEventListener {
         for (int i = 0; i < 25; i++) {
             drawSphere(sobjX[i], sobjY[i], sobjZ[i]);
         }  
-        drawSphere(0.0f, 0.0f, 0.0f);
     }
 
     private void drawSphere(float x, float y, float z) {
         GL4 gl = (GL4) GLContext.getCurrentGL();
         gl.glClear(GL_DEPTH_BUFFER_BIT);
-        //gl.glClear(GL_COLOR_BUFFER_BIT); //
         gl.glUseProgram(obj_renderer);
 
-        mvLoc = gl.glGetUniformLocation(obj_renderer, "mv_matrix");
-        projLoc = gl.glGetUniformLocation(obj_renderer, "proj_matrix");
-        nLoc = gl.glGetUniformLocation(obj_renderer, "norm_matrix");
+        mvLoc = gl.glGetUniformLocation(obj_renderer, "mv_matrix"); //model view matrix
+        projLoc = gl.glGetUniformLocation(obj_renderer, "proj_matrix"); //projection matrix
+        nLoc = gl.glGetUniformLocation(obj_renderer, "norm_matrix"); //normal matrix
 
+        //positioning the object
         vMat.translation(-cameraX, -cameraY, -cameraZ);
         mMat.translation(x, y, z);
 
+        //setting up the lighting 
         currentLightPos.set(initialLightLoc);
         installLights(vMat);
 
-        elapsedTime = System.currentTimeMillis() - startTime;
-        tf = elapsedTime / 1000.0;
-
+        //orienting the matrices
         mMat.identity();
         mMat.translate(x, y, z);
-        //mMat.translate((float) Math.sin (0.35 * (tf + scale)) * 2.0f, (float) Math.sin(0.52f * (tf + scale)) * 2.0f, (float) Math.sin(0.7f * (tf + scale)) * 2.0f);
-        //mMat.translate((int) (Math.random() * 10), (int) (Math.random() * 10), (int) (Math.random() * 10));
-        //mMat.rotateXYZ(1.75f * (float) (tf + scale), 1.75f * (float) (tf + scale), 1.75f * (float) (tf + scale));
-        // mMat.rotateY((float) Math.sin (0.35 * (tf)) * 2.0f);
 
         mvMat.identity();
         mvMat.mul(vMat);
@@ -172,27 +155,25 @@ public class Main extends JFrame implements GLEventListener {
         gl.glUniformMatrix4fv(projLoc, 1, false, pMat.get(vals));
         gl.glUniformMatrix4fv(nLoc, 1, false, invTrMat.get(vals));
 
-        gl.glBindBuffer(GL_ARRAY_BUFFER, vboO[0]); //this is wrong
+        //binding the vertex data
+        gl.glBindBuffer(GL_ARRAY_BUFFER, vboO[0]);
         gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
         gl.glEnableVertexAttribArray(0);
 
-        //gl.glBindTexture(GL_TEXTURE_2D, skyboxTexture);
-        //gl.glBindBuffer(GL_ARRAY_BUFFER, vboO[1]); //this is for textures
-        //gl.glVertexAttribPointer(1, 3, GL_FLOAT, false, 0, 0);
-        //gl.glEnableVertexAttribArray(1);
-
-        gl.glBindBuffer(GL_ARRAY_BUFFER, vboO[2]); //this is wrong
-        gl.glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0); //first value becomes 2 when using textures
-        gl.glEnableVertexAttribArray(2); //turn to 2 when using textures
-
+        //binding the texture and lighting data
+        gl.glBindBuffer(GL_ARRAY_BUFFER, vboO[2]); 
+        gl.glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0); 
+        gl.glEnableVertexAttribArray(2); 
         
+        //settings to make the sphere look nice and spherical
         gl.glEnable(GL_CULL_FACE);
         gl.glFrontFace(GL_CCW);
         gl.glEnable(GL_DEPTH_TEST);
         gl.glDepthFunc(GL_LEQUAL);
-        gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboO[3]); //?
+        gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboO[2]);
+
+        //draw the sphere
         gl.glDrawArrays(GL_TRIANGLES, 0, numSphereVerts);
-        //gl.glDisable(GL_TEXTURE_2D);
     }
 
     private void drawSkyBox() {
@@ -200,22 +181,15 @@ public class Main extends JFrame implements GLEventListener {
 
         gl.glUseProgram(cube_renderer);
 
-        mvLoc = gl.glGetUniformLocation(cube_renderer, "mv_matrix");
-        projLoc = gl.glGetUniformLocation(cube_renderer, "proj_matrix");
+        mvLoc = gl.glGetUniformLocation(cube_renderer, "mv_matrix"); //model view matrix
+        projLoc = gl.glGetUniformLocation(cube_renderer, "proj_matrix"); //projection matrix
 
-        aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
-        pMat.setPerspective((float) Math.toRadians(60.0f), aspect, 0.1f, 1000.0f);
-
+        //positioning the cube
         vMat.translation(-cameraX, -cameraY, -cameraZ);
         mMat.translation(objX, objY, objZ);
-        //mMat.translation(cameraX, cameraY, cameraZ - 1.0f);
-
-        elapsedTime =  (System.currentTimeMillis() - startTime);
-        tf =  (elapsedTime / 1000.0);
 
         mMat.identity();
         mMat.translate(cameraX, cameraY, cameraZ - 1.0f);
-        //mMat.rotateX(1.75f * (float) tf);
 
         mvMat.identity();
         mvMat.mul(vMat);
@@ -224,6 +198,7 @@ public class Main extends JFrame implements GLEventListener {
         gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
         gl.glUniformMatrix4fv(projLoc, 1, false, pMat.get(vals));
 
+        //setting each side to its own texture
         gl.glDisable(GL_DEPTH_TEST);
         for (int i = 0; i < 6; i++) {
             gl.glBindBuffer(GL_ARRAY_BUFFER, vboS[i + 6]);
@@ -235,7 +210,6 @@ public class Main extends JFrame implements GLEventListener {
             gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
             gl.glEnableVertexAttribArray(i);
 
-            // gl.glEnable(GL_DEPTH_TEST);
             gl.glDepthFunc(GL_LEQUAL);
             gl.glFrontFace(GL_CCW);
             gl.glDrawArrays(GL_TRIANGLES, 0, 18);
@@ -249,6 +223,7 @@ public class Main extends JFrame implements GLEventListener {
     private void setupVertices() {
         GL4 gl = (GL4) GLContext.getCurrentGL();
 
+        //I had to figure out all of these numbers by hand :')
         float[] topSide = {            
             -1.0f, 1.0f, 1.0f, 
             -1.0f, 1.0f, -1.0f,
@@ -268,7 +243,7 @@ public class Main extends JFrame implements GLEventListener {
             -1.0f, -1.0f, 1.0f,
             1.0f, -1.0f, 1.0f,
             1.0f, -1.0f,-1.0f
-        }; //there's something wrong here, the texture is wrapped backwards
+        }; 
 
         float[] frontSide = {
             -1.0f, 1.0f, -1.0f, 
@@ -373,6 +348,7 @@ public class Main extends JFrame implements GLEventListener {
             1.00f, 0.00f
         };
 
+        //setting up the buffers to render each face separately
         gl.glGenVertexArrays(vao.length, vao, 0);
         gl.glBindVertexArray(vao[0]);
         gl.glGenBuffers(vboS.length, vboS, 0);
@@ -431,6 +407,7 @@ public class Main extends JFrame implements GLEventListener {
     }
 
     public void sphereVertices() {
+        //more procedural sphere generation so I don't have to do it by hand
         GL4 gl = (GL4) GLContext.getCurrentGL();
         Sphere mySphere =  new Sphere(24);
         numSphereVerts = mySphere.getIndices().length;
@@ -456,9 +433,11 @@ public class Main extends JFrame implements GLEventListener {
             nvalues[i * 3 + 1] = (float) (norm[indices[i]]).y;
             nvalues[i * 3 + 2] = (float) (norm[indices[i]]).z;
         }
-        gl.glGenVertexArrays(vao.length, vao, 0); //this is probably wrong
-        gl.glBindVertexArray(vao[1]); //???
-        gl.glGenBuffers(vboO.length, vboO, 0); //????
+
+        //setting up the bufferss
+        gl.glGenVertexArrays(vao.length, vao, 0); 
+        gl.glBindVertexArray(vao[0]); 
+        gl.glGenBuffers(vboO.length, vboO, 0); 
 
         gl.glBindBuffer(GL_ARRAY_BUFFER, vboO[0]);
         FloatBuffer vertBuf = Buffers.newDirectFloatBuffer(pvalues);
@@ -477,11 +456,13 @@ public class Main extends JFrame implements GLEventListener {
     private void installLights(Matrix4f vMatrix) {
         GL4 gl = (GL4) GLContext.getCurrentGL();
 
+        //placing the lights in the right spot
         currentLightPos.mulPosition(vMatrix);
         lightPos[0] = currentLightPos.x();
         lightPos[1] = currentLightPos.y();
         lightPos[2] = currentLightPos.z();
 
+        //setting up the reflections 
         globalAmbLoc = gl.glGetUniformLocation(obj_renderer, "globalAmbient");
         ambLoc = gl.glGetUniformLocation(obj_renderer, "light.ambient");
         diffLoc = gl.glGetUniformLocation(obj_renderer, "light.diffuse");
@@ -503,11 +484,15 @@ public class Main extends JFrame implements GLEventListener {
         gl.glProgramUniform1f(obj_renderer, mShiLoc, matShi);
     }
 
-    private void collide() {
-        
+    public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) { 
+        //code to reshape the window
+        //I know the final isn't centered I can't figure out why so we just have to deal with the borders for now 
+        GL4 gl = (GL4) GLContext.getCurrentGL();
+        aspect = (float) width / (float) height; 
+        gl.glViewport(0, 0, width, height); 
+        pMat.setPerspective((float) Math.toRadians(60.0f), aspect, 0.1f, 1000.0f);
     }
     
-    public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) { }
-	public void dispose(GLAutoDrawable drawable) { }
+    public void dispose(GLAutoDrawable drawable) { }
 
 }
