@@ -7,9 +7,16 @@ import com.jogamp.opengl.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.awt.image.*;
+import java.awt.color.ColorSpace;
+import java.awt.Graphics2D;
 import java.nio.IntBuffer;
 import java.util.Scanner;
 import java.util.Vector;
+import java.awt.geom.AffineTransform;
+
+import java.awt.image.WritableRaster;
 
 import javax.imageio.ImageIO;
 
@@ -18,9 +25,10 @@ import com.jogamp.opengl.util.texture.Texture;
 import com.jogamp.opengl.util.texture.TextureData;
 import com.jogamp.opengl.util.texture.TextureIO;
 import com.jogamp.opengl.util.texture.awt.AWTTextureIO;
-
+//import jogamp.graph.geom.plane.AffineTransform;
 import jogamp.opengl.GLContextImpl;
 import java.awt.image.BufferedImage;
+import com.jogamp.common.nio.Buffers;
 
 
 public class Utils {
@@ -182,21 +190,110 @@ public class Utils {
         return tex;
     }
 
-    public static int loadCubeMap(String[] file) {
-        Texture tex = null;
+    public static int loadTextureAWT(String textureFileName) { 
+        GL4 gl = (GL4) GLContext.getCurrentGL();
+        BufferedImage textureImage = getBufferedImage(textureFileName);
+        byte[ ] imgRGBA = getRGBAPixelData(textureImage, true);
+        ByteBuffer rgbaBuffer = Buffers.newDirectByteBuffer(imgRGBA);
+        int[ ] textureIDs = new int[1]; // array to hold generated texture IDs
+        gl.glGenTextures(1, textureIDs, 0);
+        int textureID = textureIDs[0]; // ID for the 0th texture object
+        gl.glBindTexture(GL_TEXTURE_2D, textureID); // specifies the active 2D texture
+        gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, // MIPMAP level, color space
+        textureImage.getWidth(), textureImage.getHeight(), 0, // image size, border (ignored)
+        GL_RGBA, GL_UNSIGNED_BYTE, // pixel format and data type
+        rgbaBuffer); // buffer holding texture data
+        gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        return textureID;
+    }
 
-        for (int i = 0; i <= file.length; i++) {
-            try {
-                tex = TextureIO.newTexture(new File(file[i]), false);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+    private static BufferedImage getBufferedImage(String fileName) { 
+        BufferedImage img;
+        try { 
+            img = ImageIO.read(new File(fileName)); 
+        } catch (IOException e) { 
+            System.err.println("Error reading '" + fileName + '"'); throw new RuntimeException(e); 
         }
+        return img;
+    }
 
-        int textureID = tex.getTextureObject();
+    private static byte[ ] getRGBAPixelData(BufferedImage img, boolean flip) { 
+        byte[ ] imgRGBA;
+        int height = img.getHeight(null);
+        int width = img.getWidth(null);
+        WritableRaster raster = WritableRaster.createInterleavedRaster(DataBuffer.TYPE_BYTE, width, height, 4, null);
+        ComponentColorModel colorModel = new ComponentColorModel(
+            ColorSpace.getInstance(ColorSpace.CS_sRGB),
+            new int[ ] { 8, 8, 8, 8 }, true, false, 
+            ComponentColorModel.TRANSLUCENT, // transparency
+            DataBuffer.TYPE_BYTE); // data transfer type
+        BufferedImage newImage = new BufferedImage(colorModel, raster, false, null);
+        Graphics2D g = newImage.createGraphics();
+        if (flip) { 
+            AffineTransform gt = new AffineTransform();
+            gt.translate(0, height);
+            gt.setToScale(1, (float) -1d);
+            g.setTransform(gt);
+        }
+        g.drawImage(img, null, null);
+        g.dispose();
+        DataBufferByte dataBuf = (DataBufferByte) raster.getDataBuffer();
+        imgRGBA = dataBuf.getData();
+        return imgRGBA;
+    }
 
-        //BufferedImage image = (file[1]);
+    public static int loadCubeMap(String file) {
+        GL4 gl = (GL4)GLContext.getCurrentGL();
+        String topFile = file + File.separator + "1top.jpg";
+        String leftFile = file + File.separator + "6left.jpg";
+        String backFile = file + File.separator + "4back.jpg";
+        String rightFile = file + File.separator + "5right.jpg";
+        String frontFile = file + File.separator + "3front.jpg";
+        String bottomFile = file + File.separator + "2bot.jpg";
+        BufferedImage topImage = getBufferedImage(topFile);
+        BufferedImage leftImage = getBufferedImage(leftFile);
+        BufferedImage frontImage = getBufferedImage(frontFile);
+        BufferedImage rightImage = getBufferedImage(rightFile);
+        BufferedImage backImage = getBufferedImage(backFile);
+        BufferedImage bottomImage = getBufferedImage(bottomFile);
 
+        byte[ ] topRGBA = getRGBAPixelData(topImage, false);
+        byte[ ] leftRGBA = getRGBAPixelData(leftImage, false);
+        byte[ ] frontRGBA = getRGBAPixelData(frontImage, false);
+        byte[ ] rightRGBA = getRGBAPixelData(rightImage, false);
+        byte[ ] backRGBA = getRGBAPixelData(backImage, false);
+        byte[ ] bottomRGBA = getRGBAPixelData(bottomImage, false);
+
+        ByteBuffer topWrappedRGBA = ByteBuffer.wrap(topRGBA);
+        ByteBuffer leftWrappedRGBA = ByteBuffer.wrap(leftRGBA);
+        ByteBuffer frontWrappedRGBA = ByteBuffer.wrap(frontRGBA);
+        ByteBuffer rightWrappedRGBA = ByteBuffer.wrap(rightRGBA);
+        ByteBuffer backWrappedRGBA = ByteBuffer.wrap(backRGBA);
+        ByteBuffer bottomWrappedRGBA = ByteBuffer.wrap(bottomRGBA);
+
+        int[ ] textureIDs = new int[1];
+        gl.glGenTextures(1, textureIDs, 0);
+        int textureID = textureIDs[0];
+
+        gl.glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+        gl.glTexStorage2D(GL_TEXTURE_CUBE_MAP, 1, GL_RGBA8, 640, 640);
+
+        gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, 0, 0, 640, 640,
+            GL_RGBA, GL.GL_UNSIGNED_BYTE, rightWrappedRGBA);
+        gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, 0, 0, 640, 640,
+            GL_RGBA, GL.GL_UNSIGNED_BYTE, leftWrappedRGBA);
+        gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, 0, 0, 640, 640,
+            GL_RGBA, GL.GL_UNSIGNED_BYTE, bottomWrappedRGBA);
+        gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, 0, 0, 640, 640,
+            GL_RGBA, GL.GL_UNSIGNED_BYTE, topWrappedRGBA);
+        gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, 0, 0, 640, 640,
+            GL_RGBA, GL.GL_UNSIGNED_BYTE, frontWrappedRGBA);
+        gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, 0, 0, 640, 640,
+            GL_RGBA, GL.GL_UNSIGNED_BYTE, backWrappedRGBA);
+
+        gl.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
         return textureID;
     }
 
